@@ -50,6 +50,21 @@ protected:
 	UPROPERTY()
 	FTimerHandle AttackTimer;
 
+	UPROPERTY(EditDefaultsOnly, Category=Components)
+	class USphereComponent* AreaAttackSphere;
+
+	UPROPERTY(EditDefaultsOnly, Category="Attacks Setup")
+	float AreaAttackDamage = 10.f;
+
+	UPROPERTY(EditDefaultsOnly, Category="Attacks Setup")
+	TSubclassOf<class APlayerProjectile> ProjectileClass;
+
+	UPROPERTY(EditDefaultsOnly, Category="Attacks Setup")
+	float RangeAttackDamage = 10.f;
+
+	UPROPERTY(EditDefaultsOnly, Category=Components)
+	class USceneComponent* ProjectileSpawnPoint;
+	
 public:
 	
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }

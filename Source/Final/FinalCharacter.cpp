@@ -2,8 +2,11 @@
 
 #include "FinalCharacter.h"
 #include "Camera/CameraComponent.h"
+#include "Character/PlayerProjectile.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/DamageableComponent.h"
 #include "Components/InputComponent.h"
+#include "Components/SphereComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/SpringArmComponent.h"
@@ -27,7 +30,13 @@ AFinalCharacter::AFinalCharacter()
 	CameraBoom->bUsePawnControlRotation = true;
 
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
-	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); 
+	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
+
+	AreaAttackSphere = CreateDefaultSubobject<USphereComponent>(TEXT("AreaAttackSphere"));
+	AreaAttackSphere->SetupAttachment(GetRootComponent());
+
+	ProjectileSpawnPoint = CreateDefaultSubobject<USceneComponent>(TEXT("ProjectileSpawnPoint"));
+	ProjectileSpawnPoint->SetupAttachment(GetMesh());
 
 }
 
@@ -75,6 +84,19 @@ void AFinalCharacter::AreaAttack()
 	if(bIsAttacking) return;
 	bIsAttacking = true;
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Magenta, TEXT("AreaAttack"));
+	
+	TArray<AActor*> OverlappingActors;
+	AreaAttackSphere->GetOverlappingActors(OverlappingActors);
+	if(OverlappingActors.Num() > 0)
+	{
+		for(const AActor* CurrentActor : OverlappingActors)
+		{
+			if(UDamageableComponent* DamageableComponent = Cast<UDamageableComponent>(CurrentActor->GetComponentByClass(UDamageableComponent::StaticClass())))
+			{
+				DamageableComponent->ReceiveDamage(AreaAttackDamage);
+			}
+		}
+	}	
 	GetWorldTimerManager().SetTimer(AttackTimer, this, &AFinalCharacter::OnAttackEnd, AreaAttackTime, false);
 }
 
@@ -82,6 +104,15 @@ void AFinalCharacter::RangeAttack()
 {
 	if(bIsAttacking) return;
 	bIsAttacking = true;
+	if(ProjectileClass)
+	{
+		APlayerProjectile* Projectile = GetWorld()->SpawnActor<APlayerProjectile>
+							(ProjectileClass, ProjectileSpawnPoint->GetComponentLocation(), ProjectileSpawnPoint->GetComponentRotation());
+		if(Projectile)
+		{
+			Projectile->InitializeProjectile(RangeAttackDamage, this);
+		}
+	}	
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Magenta, TEXT("RangeAttack"));
 	GetWorldTimerManager().SetTimer(AttackTimer, this, &AFinalCharacter::OnAttackEnd, RangeAttackTime, false);
 }
